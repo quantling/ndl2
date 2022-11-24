@@ -19,7 +19,12 @@ Have a look into the doc folder for install instructions and  if you are
 interested in the development of ndl2. We hope to add a very extensive vignette
 to the package in the near future.
 
+## Python version `pyndl`
+
+There is a [python version called `pyndl`][4], which added learning for continues inputs and outputs and has easier support for huge weight matrices and Unicode.
+
+
 [1]: http://en.wikipedia.org/wiki/Rescorla%E2%80%93Wagner_model
 [2]: http://repository.cmu.edu/philosophy/94/
 [3]: http://www.ualberta.ca/~baayen/publications/BaayenEtAlPsychReview.pdf
-
+[4]: https://github.com/quantling/pyndl
