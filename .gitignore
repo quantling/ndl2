@@ -1,0 +1,16 @@
+src/*.o
+src/common/*.o
+src/learning/*.o
+src/preprocessing/*.o
+src/ndl2.so
+src/RcppExports.cpp
+R/RcppExports.R
+.Rhistory
+*/.Rhistory
+*/*/.Rhistory
+.Rproj.user
+man/*.Rd
+ndl2.Rcheck
+ndl2.tar.gz
+ndl2_*.tar.gz
+.doc-update

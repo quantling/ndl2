@@ -1,0 +1,703 @@
+\documentclass[a4paper, 12pt,final]{article}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[pdftex]{graphicx}
+\usepackage[bookmarks]{hyperref}
+\usepackage{setspace}
+\usepackage{pdfpages}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{algorithmic}
+\usepackage{natbib}
+
+\setcounter{secnumdepth}{0} 
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{dkred}{rgb}{0.58,0,0.1}
+\lstdefinelanguage{JavaScript} {
+	morekeywords={
+		break,const,continue,delete,do,while,export,for,in,function,
+		if,else,import,in,instanceOf,label,let,new,return,switch,this,
+		throw,try,catch,typeof,var,void,with,yield
+		},
+	sensitive=false,
+	morecomment=[l]{//},
+	morecomment=[s]{/*}{*/},
+	morestring=[b]``,
+	morestring=[d]'
+}
+
+\lstset{frame=tb,
+	language=Java,
+	aboveskip=3mm,
+	belowskip=3mm,
+	showstringspaces=false,
+	columns=flexible,
+	basicstyle={\small\ttfamily},
+	numbers=none,
+	numberstyle=\tiny\color{gray},
+	keywordstyle=\color{blue},
+	commentstyle=\color{dkgreen},
+	stringstyle=\color{dkred},
+	breaklines=true,
+	breakatwhitespace=true
+	tabsize=3
+}
+
+\usepackage[hmargin=2cm,vmargin=2.5cm]{geometry}
+
+\begin{document}
+\title{Iterative Rescorla Wagner Program and Web-Interface Manual and Design Documenation}
+\author{Nathanael Schilling}
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+\newpage
+\begin{abstract}
+This Manual gives information on both the usage and implementation of the \emph{iterative\_rescorla\_wagner} program. 
+It also gives information on the usage and implementation of the web interface for this program.
+Lastly, this document provides information that could be useful for someone maintaining these programs.
+\end{abstract}
+\section{General Overview}
+The program \emph{iterative\_rescorla\_wagner} implements the Rescorla-Wagner model. It is written in the C++ programming language\footnote{More specifically, in C++11}.
+The source code for this program currently can be found on bitbucket, using the following command:
+\lstset{language=bash}
+\begin{lstlisting}
+git clone git@bitbucket.org:natschil/iterative_rescorla_wagner.git
+\end{lstlisting}
+The program \emph{iterative\_rescorla\_wagner} has a web interface. It consists of a cgi script (written in perl) that acts as a wrapper for the \emph{iterative\_rescorla\_wagner} program and of a HTML file (containing some Javascript) that acts as the actual interface.
+The source code for the web interface also currently lives on bitbucket. It can be fetched using the following command:
+\lstset{language=bash}
+\begin{lstlisting}
+git clone git@bitbucket.org:natschil/rescorla_wagner_website.git
+\end{lstlisting}
+\begin{center}
+Example of a graph drawn in the web interface
+\includegraphics[scale=0.8]{example_web_graph.png}
+\end{center}
+\newpage
+\section{Installation Instructions}
+\subsection{Pre-requisites}
+The C++ program depends on the boost::filesystem, boost::regex and boost::system libraries from boost\footnote{See \url{http://www.boost.org/}}. It also depends on the libunistring library from GNU\footnote{See \url{http://www.gnu.org/software/libunistring/}}.
+\\\\
+The Web interface depends on the CPAN JSON module for perl\footnote{See \url{http://search.cpan.org/~makamaka/JSON-2.59/lib/JSON.pm}}. You will also need a web-server that knows how to run a cgi--bin script, and a reasonably modern web-browser\footnote{Using Mozilla Firefox or Google Chrome is encouraged and tested, using Microsoft Internet Explorer is discouraged and untested.}. Additionally, the web interface depends on the Dygraphs\footnote{See \url{http://dygraphs.com/}} library and on the List.js\footnote{See \url{http://listjs.com/}} library. However, these are fetched from their respective servers by the browser and therefore do not need to be installed.
+\subsection{Installation}
+To compile the c++ program, run \emph{make} in the source code directory.
+\\\\
+To install the web-interface, move the \emph{rescorla\_wagner\_wrapper.pl} file to the \emph{/cgi-bin} directory of your web-server.\\
+Also move the \emph{index.html} and \emph{style.css} files to an arbitrary directory on your web server.\\
+Then, edit the start of the \emph{rescorla\_wagner\_wrapper.pl} file to tell the wrapper script where to find the \emph{iterative\_rescorla\_wagner} program (amongst other things). The following perl variables need to be set:
+\lstset{language=perl}
+\begin{lstlisting}
+#(See below for the structure of the json index file)
+my $index_file = "/path/to/json_index_file.json";
+#The paths below should point to the relevant executables which were compiled when running make
+my $iterative_rescorla_wagner = "/path/to/iterative_rescorla_wagner";
+# output_matrix_file_to_ascii is built in the c++ source directory on compilation.
+my $output_matrix_file_to_ascii = "/path/to/output_matrix_file_to_ascii";
+my $wheretosave_new_matrices = "/path/to/directory/where/to/save/matrices";
+\end{lstlisting}
+
+The JSON index file contains information on the sets of events (Sometimes referred to in this document as ``corpora'') that the web-interface should have access to. It takes the form of JSON hash, where the keys are human readable descriptions of the data sources. Each value is a JSON hash, with a key named ``Events'' and (optionally) one named ``Matrices''.\\\\The value of ``Events'' should be a JSON hash with a single key to value mapping. The key should be the path to the directory containing a preprocessed corpus, and the value (a string) should be the corpus name.\\\\
+The value of ``Matrices'', if the key ``Matrices'' exists, should be a JSON hash of human readable matrix names to matrix file locations.
+
+below is an example JSON index file for two corpora of preprocessed events.
+\lstset{language=Javascript}
+\begin{lstlisting}
+{
+    "Hand Calculated Reference Data" :
+    {
+        "Matrices":
+        { 
+            "Output from hand calculated matrices":"/home/nat/matrixes.output"
+    	},
+        "Events": ["/home/nat/toy.preproc","toy"]
+    },
+    "tiniest.corpus" :
+    { 
+	"Events": ["/home/nat/tiniest.corpus.preproc","tiniest.corpus"],
+    }
+}
+\end{lstlisting}
+\subsection{Testing}
+To test the operation of the model after compilation, run \emph{make test} in the source code directory of the C++ program. This runs several tests that compare the output of the model with reference data generated earlier or calculated by hand.
+\newpage
+\section{Design of the C++ Program}
+The C++ Program is split into various files providing various functions. Only the $rescorla\_wagner.cpp$ file contains the actual model, all other files deal with handling input and output of the model. Throughout the program, $exit(-1)$ is called on error (and an error-message is output). On a successful run, the exit status returned by the program is 0. Only the output of the actual model is output to \emph{stdout}, everything is else is written to \emph{stderr}.
+\subsection{fast\_matrices.h}
+The file \emph{fast\_matrices.h} implements a matrix template class (called myMatrix). It has the following constructor:
+\lstset{language=C++}
+\begin{lstlisting}
+myMatrix(size_t rows, size_t cols,const vector<int> &columns_that_are_zero);
+\end{lstlisting}
+$columns\_that\_are\_zero[j]$ should be $1$ if column $j$ will not be used, and $0$ if it will or might be used. Note that $columns\_that\_are\_zero.size()$ must be equal to $cols$. The constructor sets all elements in the matrix to zero. In the case of $columns\_that\_are\_zero$ consisting of only $0$ values, matrices are stored internally in a different way to allow for (hopfully) faster running of the model. \\
+\\
+Also useful is the matrix accessor function. It has the following type-signature, where $element\_type$ is the template parameter.
+\begin{lstlisting}
+element_type &operator()(size_t i, size_t j)
+\end{lstlisting}
+A version to return a constant reference also exists. Note that writing to a column that was not declared to be in-use at initialization of the matrix is undefined. If this rule is followed, then reading from a column not declared to be in use at initialization returns $element\_type\{0\}$.
+\subsection{common\_type\_definitions.h}
+The file $common\_type\_definitions.h$ declares several types and structures used by various different parts of the program. \\
+Firstly, it sets the type of $AssociationMatrix$ to be $myMatrix<double>$.
+It also declares the $traceDirective$ class, and the associated $traceDirectiveType$ and $traceDirectiveWhen$ enums:
+\begin{lstlisting}
+enum class traceDirectiveWhen {EVERY,AT,FIRST,NEVER};
+enum class traceDirectiveType {CUE_OUTCOME,COSINE,EUCLIDEAN};
+struct singleTraceDirective
+{
+	size_t cueId;
+	std::string cueName; //Should be set to the name of the cue with id cueId
+
+	size_t outcomeId;
+	std::string outcomeName; //Name of outcomeId
+
+	size_t secondOutcomeId;
+	std::string secondOutcomeName;//Name of secondOutcomeId
+
+	traceDirectiveType directiveType; //What kind of trace is this?
+
+	//These three class members determine when the trace is output.
+	traceDirectiveWhen directiveWhen;
+	long long int directiveEventParam;
+};
+using TraceInfo = std::vector<singleTraceDirective>;
+\end{lstlisting}
+The use of the singleTraceDirectives class is further looked at in the section on the $rescorla\_wagner.cpp$ file which can be found lower down in this section.
+\\
+\subsection{matrix\_io.h}
+The $iterative\_rescorla\_wagner$ program has the option of saving the entire matrix of weights to a file at particular event counts of the model. These matrices are saved using a binary format. The $matrix\_io.h$ file abstracts a variety of matrix IO actions.\\
+Fristly, there is the $matrixFileInfo$ class which represents the metadata of a particular matrix file:
+\begin{lstlisting}
+struct matrixFileInfo
+{
+	matrixFileInfo(){};
+	matrixFileInfo(
+			size_t rows_in,
+			size_t cols_in,
+			const std::string &folder_name_in,
+			const std::string &corpus_name_in,
+			double default_alpha_in,
+			double default_beta_in,
+			std::vector<long long int> events_at_which_to_write_in,
+			bool has_duplicates_in
+			);
+	size_t rows;
+	size_t cols;
+	std::string folder_name;//Path to the folder where this corpus is
+	std::string corpus_name;
+	double default_alpha;
+	double default_beta;
+	std::vector<long long int> events_at_which_to_write;
+
+	/* has_duplicates is false if duplicate cues were ignored when this matrix was written to disk.*/
+	bool has_duplicates;
+};
+\end{lstlisting}
+Note that whilst the code above is relatively uninformative on the running of the model, the names used above are used throughout the codebase.\\
+\\
+\newpage
+Similar to the $matrixFileInfo$ class is the $matrixOutputInfo$ class. Its declaration is below:
+\begin{lstlisting}
+class matrixOutputInfo
+{
+	public:
+		matrixOutputInfo() = delete;
+		//Passing an empty string as output_filename means no matrices should be output.
+		matrixOutputInfo(string &output_filename,const matrixFileInfo &matrix_file_info);
+		void writeHeader();
+		void appendMatrix(const AssociationMatrix &association_matrix,long long int &event_count);
+		void writeFooter(void);
+	private:
+		string output_filename;
+		ofstream output_file;
+		matrixFileInfo matrix_file_info;
+};
+\end{lstlisting}
+It provides a simple way to write a matrix to a file. $matrixOutputInfo::appendMatrix$ writes the matrix to the file only if $event\_count$ is in $matrix\_file\_info.events\_at\_which\_to\_write$, and expects to be called at every event count. This is in contrast to the $appendMatrixToFile$ (also defined in $matrix\_io.h$) which writes the matrix to the file whenever it is called. The other functions in $matrix\_io.h$ should be self-explanatory (if not, $matrix\_io.h$ has comments); they are listed below:
+\begin{lstlisting}
+void writeMatrixFileHeader(
+	ofstream &file_to_write, const matrixFileInfo &matrix_file_info
+	);
+
+matrixFileInfo readMatrixFileHeader(istream &file_to_read);
+void writeMatrixFileFooter( ofstream &file_to_write);	
+
+void appendMatrixToFile(
+	ofstream &file_to_write, const AssociationMatrix &current_matrix,
+	long long int event_count
+	);
+
+long long int readMatrixFromFile(
+	istream &file_to_read,
+	AssociationMatrix &matrix_to_read, size_t rows, size_t cols
+	);
+
+void prettyPrintMatrix(
+	ostream &output_stream,
+	const AssociationMatrix &association_matrix, long long int event_number
+	);
+
+void prettyPrintMatrixFileToOstream( ostream &output_stream, istream &input_stream);
+\end{lstlisting}
+\subsubsection{The binary format of matrix files}
+The matrix files created by the $matrix\_io$.h file have a relatively simple structure. Firstly, a matrix file has a header. This header contains metadata, including a version number, and a reference matrix. The reference matrix is included as a safeguard against reading the (binary) matrices in the file from a machine with a different binary representation of the \emph{double} type.
+\\
+Following the header, the file contains the matrices in binary form. The format is very simple, see $matrix\_io.h$ for specifics. Lastly, a matrix file should contain a footer.\\
+The sections of a matrix file and the separte matrices contained in the file are generally encapsulated by lines like ``-\hspace{1px}-\hspace{1px}-Begin Matrix File Footer-\hspace{1px}-\hspace{1px}-'' and ``-\hspace{1px}-\hspace{1px}-End Matrix File Footer-\hspace{1px}-\hspace{1px}-''.
+\\
+Creating matrix files using anything other than the functions provided in $matrix\_io.h$ is discouraged.
+\\
+\subsection{events\_manager.h}
+The $events\_manager.cpp$ and $events\_manager.h$ files provide a class for managing the sharing of events files between threads. This is done by loading events from event files on demand, and freeing the data structures once all threads are finished with them. This is done in a series of OpenMP critical sections. For details consult the source code.\\
+\subsection{util.h}
+The $util.h$ file contains various utility functions. They are documented in $util.h$, and are mostly relatively simple helper functions.\\
+The one somewhat more complex function in this file is the following function:
+\begin{lstlisting}
+template<class V>
+std::pair<std::map<string,V>,V > read_space_separated_file(string &file_name);
+\end{lstlisting}
+The function opens the file at $file\_name$, and expects every line of the file to be a key-value pair separated by a space. The key can be any string not containing whitespace, and the type of the value is given by the template parameter $V$. It returns as the result a pair, where the first element is the map of key to value and the second value is the maximum value encountered. All keys are normalized to the normalization form NFKC, and $V$ is expected to be a numeric type (or at least a type implementing the ``$<$'' operator).
+\subsection{file\_management.h}
+The file $file\_management.h$ defines several functions to the outside-world. The first is:
+\begin{lstlisting}
+TraceInfo read_traceinfo_from_file(istream &infile,const map<string,size_t> &cues,const map<string,size_t> &outcomes);
+\end{lstlisting}
+The function $read\_traceinfo\_from\_file$ simply reads trace directives, such as ``cue,outcome'' or ``cosine(outcome1,outcome2)'' from an input stream. It returns an object of type $TraceInfo$, which is, as seen above, simply a vector of $singleTraceDirective$ objects. This function is also used by the $output\_matrix\_file\_to\_ascii$ program, hence the fact that it is not defined as being $static$.\\
+\\
+\subsubsection{start\_model}
+More important, however, is the $start\_model$ function, though a better name for it might have been $run\_model$, as this function is responsible not only for starting the model, but for running everything that needs to be run. The $main$ function, defined in $main.cpp$, does nothing other than parsing the command-line arguments and calling $start\_model$.
+\begin{lstlisting}
+void start_model(
+		string events_foldername,
+		double default_alpha,
+	       	string alphas_filename,//Optional cues->alpha file
+		double default_beta,
+		string betas_filename,//Optional outcomes->beta file
+		double lambda,
+		string outcomes_to_number_filename,//Space separated map of outcomes to id.
+		string cues_to_number_filename,//Space separated map of cues to id
+		//In general, !has_duplicates ==  ignore_duplicate_cues_or_outcomes
+		bool ignore_duplicate_cues_or_outcomes,
+		string matrix_output_file_name,
+		vector<long long int> events_at_which_to_output_matrix,
+		const boost::filesystem::path &folder_name, //The folder containing everything, including a folder of preprocessed events
+		const string &corpus_name,
+		bool quiet_mode, //If set to true, we output less to stderr
+		long long int until//How many events to learn from.
+		);
+\end{lstlisting}
+The $start\_model$ function has the following pseudocode:
+
+\begin{lstlisting}
+void start_model(arguments)
+{
+	boostrap_model()
+	Setup matrix output file.
+	read_events_files();
+}
+\end{lstlisting}
+\subsubsection{boostrap\_model}
+The $boostrap\_model$ function is responsible for the initialisation of various structures used by the model. This function exists so that the Rcpp bindings can save these structures to be able to split the model's learning accross multiple function calls from R. Hence the first set of arguments to $bootstrap\_model$ are initialized by the function, one should therefore pass ``empty'' objects of the specified type. The second set of arguments are the actual parameters to the function. \\
+The function has the following signature:
+\begin{lstlisting}
+void bootstrap_model(
+		//The first set of arguments:
+		//These arguments are all basically return values:
+		AssociationMatrix &association_matrix,
+		vector<double> &alphas,
+		vector<double> &betas,
+		TraceInfo &to_trace,
+		vector<int> &outcomes_to_ignore, 
+		size_t &num_rows,
+		size_t &num_cols,
+		//The second set of parameters.
+		//These are the actual "parameters" to the function in the more traditional sense of the word:
+		double default_alpha,
+		string alphas_filename,
+		double default_beta,
+		string betas_filename,
+
+		string outcomes_to_number_filename,
+		string cues_to_number_filename,
+
+		bool quiet_mode,
+		string matrix_output_file_name, //Pass a non-null string here to model all outcomes in association matrix.
+
+		bool read_trace_info //Whether to initialize to_trace
+
+);
+\end{lstlisting}
+The following pseudocode illustrates what $boostrap\_model$ does.
+\begin{lstlisting}
+void boostrap_model(arguments)
+{
+	Read in outcomes from outcomes_to_number_filename;
+	Read in cues from cues_to_number_filename;
+	Read in traces from stdin if we need to do so;
+	Read in custom values for alphas;
+	Read in custom values for betas;
+	See what columns are needed by the traces or matrix, then create an AssociationMatrix accordingly.
+}
+\end{lstlisting}
+\pagebreak
+\subsubsection{read\_events\_files}
+The $read\_events\_files$ function takes as one of its parameters $events\_foldername$, opens it as a folder, and reads in all of the files in that folder. It runs a lexographical sort on all filenames of the form events\_([0-9]+)\_([0-9]+).dat, so that the primary sorting key used is the first number (when taken from left to right) and the secondary sorting key is the second number.\\
+I.e the following:
+\begin{lstlisting}
+events_15_7.dat
+events_0_1.dat
+events_0_2.dat
+events_4_3.dat
+\end{lstlisting}
+sorts to the following:
+\begin{lstlisting}
+events_0_1.dat
+events_0_2.dat
+events_4_3.dat
+events_15_7.dat
+\end{lstlisting}
+$read\_events\_files$ then creates an $events\_manager$ object with this list of paths. It also splits the outcomes into as many ranges as there are threads (use the $-t$ parameter to set the number of threads). At this point it forks into multiple threads using OpenMP, each of which has a number. Each thread runs $handle\_events$ on each set of events it gets from the $events\_manager$. The event files managed by the $events\_manager$ class are expected to be deserializable using the functions in $serialization.h$, and correspond to the output of the events files for the $ndl.preproc$\footnote{See \url{https://bitbucket.org/cyrusshaoul/ndl.preproc}} program. The $iterative\_rescorla\_wagner$ program depends on the fact that additionally to being deserializable by the functions in $serialization.h$, for every event the cues and the outcomes in that event are sorted in ascending order.\\
+\subsubsection{handle\_events}
+The $handle\_events$ function is relatively straightforward. The parameter $skip\_count$ gives how many events should be ignored until to start learning. This is useful for the Rcpp wrapper as skipping events that have already been learned from is equivalent to `resuming' learning from a certain point. The $skip\_count$ parameter is updated as events are skipped, so that it eventually reaches zero. The main logic of the $handle\_events$ function is shown verbatim on the next page:
+\pagebreak
+\begin{lstlisting}
+	if(!event_count && !skip_count)
+	{
+		output_info.appendMatrix(association_matrix,event_count);
+		if((num_threads == 1) && current_events.size())
+			output_trace_info(association_matrix,to_trace,event_count);
+	}
+
+	for(const auto &i : current_events)
+	{
+		if(skip_count < start_from)
+		{
+			skip_count++;
+			continue;
+		}
+		if(--until < 0)
+			break;
+		update_association_matrix_in_response_to_event(
+				association_matrix,
+				i,
+				alphas,
+				betas,
+				lambda,
+				has_duplicates,
+				outcomes_to_ignore,
+				this_threads_region
+				);
+		event_count++;
+		if(output_info.matrix_file_info.events_at_which_to_write.back() == event_count)
+		{
+			#pragma omp barrier
+			#pragma omp flush
+			#pragma omp master
+			{
+				output_info.appendMatrix(association_matrix,event_count);
+			}
+			#pragma omp flush
+			#pragma omp barrier
+		}
+		if(num_threads == 1)
+			output_trace_info(association_matrix,to_trace,event_count);
+	}
+	return;
+\end{lstlisting}
+\pagebreak
+\subsubsection{Format of input files representing maps}
+All maps (such as the cues file, the outcomes file, the alphas file or the betas file) are read using the $read\_space\_separated\_file$ (See section on util.h).
+\subsubsection{Some notes on trace directives}
+Every trace directive has two types of information associated to it. Firstly, what is being traced (the ``what directive''). This could be a (cue,outcome) trace, a cosine trace or an euclidean trace. Secondly, the trace directive contains information about when it should be output, or the ``when directive''. For example, the ``when directive'' could result in a trace being output every 10 events.
+
+An essential part of the ``what directive'' is the \emph{type} of the trace directive. This, along with the associated parameters is parsed by the $read\_traceinfo\_from\_file$ function of the $file\_management.cpp$ file. There are three \emph{type}s of trace:
+\begin{itemize}
+	\item The cue,outcome (CUE\_OUTCOME) form. This takes as the first parameter a cue name and as the second parameter an outcome name.
+		The relevant weight in the association matrix is output as the trace. The trace directive is input to the program as ``cue,outcome''.
+	\item The cosine (COSINE) form. This takes two outcome names as parameters. The trace directive is input to the model as ``cosine(first\_outcome,second\_outcome)''. It returns $result$, given that $a$ is the outcome id of the first parameter and $b$ is the outcome id of the second parameter:
+		\[
+			result = 
+			\frac{\sum_{i}\left( association\_matrix(i,a)\times association\_matrix(i,b)\right) }
+			{\sqrt{\sum_{i} association\_matrix(i,a)^2}\times \sqrt{\sum_{i}association\_matrix(i,b)^2}}
+		\]
+	\item The euclidean distance (EUCLIDEAN) form. This is similar to the cosine form, except that the trace directive is input to the model as ``euclidean(first\_outcome,second\_outcome)'', and the output returned is:
+		\[
+			result =
+			\sqrt{\sum_{i}\left(association\_matrix(i,a) - association\_matrix(i,b)\right)^2}
+		\]
+\end{itemize}
+\hspace{2em}
+There are three types of ``when directives'' which control when the trace directive is output. Adding no ``when directive'' to a trace directive has the result of the default ``(every 1)'' ``when directive'' being used. To change this, edit the $read\_traceinfo\_from\_file$ function in $file\_management.cpp$. Note that the ``when directive'' needs to be separated by the ``what directive'' by an ASCII tab character.\\
+The three types of ``when directive''s are:
+\begin{itemize}
+	\item Output the trace every $x$ events. This is simply written as ``(every $x$)'', where $x$ is an integer.
+	\item Output the trace for the first $x$ events. This is written as ``(first $x$)''.
+	\item Output the trace at several events specified. This is written as ``(at $x$ [$y$ [$z$\dots]])'', where $x$,$y$,$z$,\dots are integers.
+		For example, ``(at 1)'' would output the trace after the first event. ``(at 1 10 1000 2000000)'' would output the trace at the first, tenth, thousandth and two-millionth event.
+\end{itemize}
+The ``when directive'' is parsed by the (rather poorly-named) \\$set\_traceDirectiveWhen\_for\_singleTraceDirective\_and\_add\_to\_TraceInfo$ function\\ in the $file\_management.cpp$ file. Trace directives are stored as elements of the $singleTraceDirective$ class. Note that the aforementioned function splits a single ``at'' trace-directive into multiple $singleTraceDirective$ elements depending on the number of parameters given, which is why there is only a single $directiveEventParam$ member of the $singleTraceDirective$ class.
+\\\\
+Whenever a trace is output, the output takes the following form:
+\begin{lstlisting}
+	event_number  \t  what_is_being_traced   \t   value   \n
+\end{lstlisting}
+$event\_number$ is the event number of the trace, and $value$ is the value of the trace. $what\_is\_being\_traced$ is an unique string that names the current ``what directive''. For example, for a (cue,outcome) trace, $what\_is\_being\_traced$ is ``($cueId$,$outcomeId$)''. To tell the user of the model what \linebreak $what\_is\_being\_traced$ is, the program outputs a string like the following to stderr for every trace:
+\begin{lstlisting}
+Tracing\t(cuename,outcomename)\tas\t(1,2)\n
+\end{lstlisting}
+This is done by the $say\_start\_of\_what\_is\_being\_traced$ function in the $file\_management.cpp$ file. This is also how the web interface finds out about $what\_is\_being\_traced$. At the end of a sequence of lines like the one above, the line 
+\begin{lstlisting}
+Done reading what to trace. 
+\end{lstlisting}
+is output to stderr, which the web interface uses to know the model has told it about all possible $what\_is\_being\_traced$.
+
+
+\subsection{The actual model - rescorla\_wagner.h and rescorla\_wagner.cpp}
+The $update\_association\_matrix\_in\_response\_to\_event$ function implements the actual Rescorla-Wagner model, and slight variations thereof.
+In general, let $\mbox{association\_matrix}^{t}(i,j)$ be the association between the cue $i$ and outcome $j$ after event number $t$. Note also 
+that, $\mbox{association\_matrix}^{0}(i,j) = 0$ .
+If $has\_duplicates$ is false (corresponding to the absence of the ``-d'' flag), we have:
+\[
+	\mbox{association\_matrix}^{t+1}(i,j) = \begin{cases}
+		0 & \mbox{if the cue $i$ is not present at event $t+1$}\\
+		\alpha_{i}\beta_{j}(\lambda - \Delta{V_{j}}) & \mbox{if the cue $i$ and outcome $j$ are present}\\
+		\alpha_{i}\beta_{j}(0 - \Delta{V_{j}}) & \mbox{otherwise, (i.e. only $i$ is present) }
+	\end{cases}
+\]
+Where:
+\[
+	\Delta{V_{j}} = \sum_{i'}\mbox{association\_matrix}^t(i',j)[\mbox{cue $i'$ is present in event $t + 1$}]
+\]
+And where:
+\[
+[statement] = \begin{cases}
+		1 & \mbox{if statement is true}\\
+		0 & \mbox{if the statement is false}
+	\end{cases}
+\]
+If we have $has\_duplicates$ to be true, we have the very similar formulas:
+\[
+	\mbox{association\_matrix}^{t+1}(i,j) \mbox{=} \begin{cases}
+		0 & \mbox{if the cue $i$ is not present at event $t + 1$}\\
+		\mbox{count}(i)\mbox{count}(j)\alpha_{i}\beta_{j}(\lambda - \Delta{V_{j}}) & \mbox{if the cue $i$ and outcome $j$ are present}\\
+		\mbox{count}(i)\alpha_{i}\beta_{j}(0 - \Delta{V_{j}}) & \mbox{otherwise}
+	\end{cases}
+\]
+Where:
+\[
+	\Delta{V_{j}} = \sum_{i'}\mbox{association\_matrix}^{t}(i',j)\mbox{count}(i')
+\]
+and where
+\[
+	\mbox{count($x$)} = \begin{cases}\mbox{The number of times outcome $x$ occurrs in the event $t+1$} &\mbox{if $x$ is an outcome}\\
+		\mbox{The number of times cue $x$ occurrs in the event $t+1$} &\mbox{if $x$ is a cue}
+	\end{cases}
+\]
+
+The justification for letting the model behave in the way described above when $has\_duplicates$ is true is that firstly, it corresponds to the standard Rescorla-Wagner model when there are no duplicate cues or outcomes and secondly, that it corresponds to the following algorithm:
+\begin{algorithmic}
+\FOR{every possible outome}
+	\STATE $V_{total} \leftarrow 0$
+	\STATE $count \leftarrow $ Number of times the current outcome occurs in this cue.
+	\FOR{all cues in this event}
+	\STATE $V_{total} \leftarrow V_{total} + \mbox{association\_matrix(this cue, this outcome)}$
+	\ENDFOR
+	\FOR{all cues in this event}
+	\STATE $to\_add \leftarrow \alpha_{i}\beta_{j}(\lambda[count > 0] - V_{total})$
+	\IF{$count > 0$}
+		\STATE	$to\_add \leftarrow to\_add * count$
+	\ENDIF
+	\STATE $\mbox{association\_matrix(this cue, this outcome)}\hspace{2px} \mathrel{+}= to\_add)$
+	\ENDFOR
+\ENDFOR
+\end{algorithmic}
+\vspace{1em}
+The definition of the Rescorla-Wagner model used when $has\_duplicates$ is false is taken from \cite[p4]{danks}.
+\\\\
+The $rescorla\_wagner.cpp$ file also contains the commands relevant for outputting traces. These are not explained further here.
+\subsection{main.cpp}
+The $main.cpp$ file translates command-line arguments of the program to the arguments of the $start\_model$ function. It is relatively uncomplicated, and hence is not described in detail here.
+\subsection{output\_matrix\_file\_to\_ascii}
+The $output\_matrix\_file\_to\_ascii$ program is used to:
+\begin{enumerate}
+		\item Output the entire matrices to ascii.\\
+		\item Run traces on the matrices.\\
+		\item Output important parts of the headers of a matrix file. \\
+\end{enumerate}
+The first case can be achieved by calling $output\_matrix\_file\_to\_ascii$ with the only parameter being the location of the matrix file, or by piping the matrix file to the $output\_matrix\_file\_to\_ascii$ program without any arguments. Case (2) is similar, except for the fact that the matrix file location \emph{must} be the first argument to the program and the second argument must be the flag ``-\hspace{1px}-simulate-trace''. Traces are input to \emph{stdin} in the same way that they are to the $iterative\_rescorla\_wagner$ program. Case (3) has the same invocation as Case (2), except for that the flag name is ``-\hspace{1px}-print-matrix-file-header''.
+\subsubsection{The output from ``-\hspace{1px}-print-matrix-file-header''}
+The output of running output\_matrix\_file\_to\_ascii with the ``-\hspace{1px}-print-matrix-file-header'' flag returns something like:
+\begin{verbatim}
+Iterative Rescorla-Wagner-Matrices output
+Version 0.4
+Rows per Column:	4
+Columns per Row:	4
+Folder Containing Preprocessed Corpus:	/home/nathanael/dev/iterative_rescorla_wagner/testingData/toy.preproc
+Name of Corpus:	toy
+Default Alpha:	1
+Default Beta:	1
+Duplicate Cues or Outcomes for Single Event:	false
+Included Events:	0,1,2
+\end{verbatim}
+Note that the web-interface parses this matrix output using a regular expression, and any changes to the format of the output above \emph{must} be reflected in the aformentioned regular expression in the ``rescorla\_wagner\_wrapper.pl'' cgi--bin script.
+\newpage
+\section{Design of the Web Interface}
+\subsection{General design}
+The web interface of the Rescorla Wagner model consists of two parts:
+\begin{itemize}
+	\item The cgi--bin perl wrapper script - This script is run on the server in response to a HTTP Request sent by the browser, and 
+		it acts as a wrapper to the \emph{iterative\_rescorla\_wagner} program.\\
+	\item The HTML/Javascript/CSS files - These are run by the browser and are responsible for drawing the user interface.
+\end{itemize}
+\subsection{The cgi-bin perl wrapper script}
+The file \emph{rescorla\_wagner\_wrapper.pl} is run in response to a HTTP Request\footnote{This can either be a GET or a POST request, but POST requests are used by the program in practice as these allow for longer query strings} by the web-server. It takes its parameter from the query string of the request which should have the for described in RFC 1738 \footnote{See \url{http://tools.ietf.org/HTML/rfc1738}} and RFC 3986\footnote{See \url{http://tools.ietf.org/HTML/rfc3986}}, amongst others. Every query must have an ``action'' parameter; which other parameters are required depends on the ``action'' parameter.
+\subsubsection{Parameters common to several values of the ``action'' parameter}
+There are several parameters whose name and function are common accross several possible actions. These are:
+\begin{itemize}
+	\item ``corpus\_description'' - The human readable corpus name shown in the JSON index file for a particular corpus. \\
+	\item ``matrix\_description'' - The human readable matrix name shown in the JSON index file for a particular matrix.
+\end{itemize}
+\subsubsection{For ``action'' parameter ``get\_data\_sources''}
+No parameters. If the value of the ``action'' parameter is ``get\_data\_sources'', the wrapper script returns a JSON\footnote{See \url{www.json.org}} object. On Error, the ``Error'' key of the JSON object is set to a string describing the error; on sucess, the ``Payload'' key is set to the JSON index file\footnote{See section ``Installation Instructions'', subsection ``Installing'' of this document}.
+\subsubsection{For ``action'' parameter ``get\_matrix\_file\_info''}
+Parameters ``corpus\_description'' and ``matrix\_description''. Returns a JSON formatted object where the ``Payload'' key represents the matrix file header (taken using the \emph{output\_matrix\_file\_to\_ascii} program, see documentation on that for details on how). It is important to note that the output from this program is parsed using a regular expression, and hence changing the format of the matrix file header output by \emph{output\_matrix\_file\_to\_ascii} results in the perl wrapper script failing even for small changes.
+\subsubsection{For ``action'' parameter ``trace''}
+Takes ``corpus\_description'', and where applicable, ``matrix\_description''. Also takes the following parameters specific to this action:
+\begin{itemize}
+	\item ``source\_type'' - The type of the datasource, i.e whether to run the trace on event files or on matrix files. This can be either ``Matrices'' or ``Events''.\\
+	\item ``default\_alpha'' - The default value of alpha to use (for non-matrix queries) \\
+	\item ``default\_beta'' - The default value of beta to use (for non-matrix queries) \\
+	\item ``lambda'' - The value of lambda to use for the model.\\
+	\item ``until'' - How many events to run the model for. \\
+	\item ``traces'' - The traces to run, these should be in the same format as the traces taken by the C++ program \\
+	\item ``has\_duplictes'' - Whether to not ignore duplicate cues or outcomes. Note that this (somewhat poor) naming convention is used throughout the model\\
+	\item ``alphas\_file'' (optional) - Passing a string formatted like an alphas file (See subsubsection ``Format of input files representing maps'')\\
+	\item ``betas\_file'' (optional) - Passing a string formatted like a betas file (See subsubsection ``Format of input files representing maps'')
+	\item ``new\_matrix'' (optional) - Whether or not to save a matrix file for various events for this run of the model (see below). Set this to ``true'' to enable.
+\end{itemize}
+If the parameter ``new\_matrix'' is set to ``true'', the following extra parameters must be specified:
+\begin{itemize}
+	\item ``new\_matrix\_description'' - An unique (per corpus) human-readable description of the matrix file.\\
+	\item ``new\_matrix\_events'' - What events to save. Pass a comma-separated string of non-negative integers.\\
+\end{itemize}
+The ``trace'' action runs the trace for the specified parameters, using either the \emph{iterative\_rescorla\_wagner} or \emph{output\_matrix\_file\_to\_ascii} programs (whichever is applicable).  It converts the output from the program to a comma-separated list of values, and does so using a regular expression for each line. So far, the bottleneck of the program has not been the perl wrapper script, and hence this has not been optimized; however, one may wish to do so in the future if one notices that the perl wrapper script is too slow. The wrapper script also converts any instances of ``nan'' to ``NaN'', as the graph library used in the HTML file depends on this. Errors are returned on lines beginning with ``\#'', as these are treated as comment characters by the graph library\footnote{An exception to this are ``\#'' characters on the title-line, which are displayed as they are by the graph library}. Any commas in field names of the title line are replaced with the characters ``-$>$''.\\
+The perl function \emph{open3} is used to get both \emph{stdout} and \emph{stderr} from the child process which is spawned. To prevent blocking from the kernel pipe buffers becoming too full, stderr is read until the line ``Done reading what to trace.\textbackslash{}n'' is output to \emph{stderr}, it is hence vital that the child process outputs this line. The perl wrapper script knows the names of trace directives (as output by the c++ program) from lines output to \emph{stderr} before the line ``Done reading what to trace. \textbackslash{}n'' is output. This behaviour is also documented in the section of this document that deals with the C++ program called ``Some notes on trace directives''.
+\subsubsection{For ``action'' parameter ``get\_alphas\_file''}
+Parameters: ``corpus\_description''.\\
+This action returns the alphas file of the specified corpus.
+\subsubsection{For ``action'' parameter ``get\_betas\_file''}
+Parameters: ``corpus\_description''.\\
+This action returns the betas file of the specified corpus.
+\subsubsection{For ``action'' parameter ``get\_outcomes\_file''}
+Parameters: ``corpus\_description''.\\
+This action returns the outcomes file of the specified corpus.
+\subsubsection{For ``action'' parameter ``get\_cues\_file''}
+Parameters: ``corpus\_description''.\\
+This action returns the cues file of the specified corpus.
+\section{The client side HTML/Javascript/CSS web interface}
+The client side to the model's web interface consists of two files: \emph{index.html} and \emph{style.css}. \\
+The file \emph{style.css} contains CSS code responsible for formatting the interface.\\
+The file \emph{index.html} consists partially of Javascript logic and partially of HTML structures. In general, most of the Javascript code  is in the $<head>$ section of the HTML file, and the $<body>$ section contains the HTML structures used.
+\subsection{The HTML}
+The (non-Javascript) HTML code should be relatively self-explanatory. In general, several (nested) tables are declared which serve various purposes in the user interface. Several ``id'' attributes of these tables which are used by the Javascript are:
+\begin{itemize}
+	\item ``resizediv'' - A \emph{div} element which has the CSS resizable property set, allowing it to be resized by most browsers. The size of the ``graphdiv'' element (see below) is synchronized with that of this element using DOM Mutation Events\footnote{Does not currently work on Chrome due to a chrome bug} and by querying the size of ``resizediv'' whenever the graph is redrawn. \\
+	\item ``graphdiv'' - A \emph{div} element which sits inside of ``resizediv'' and contains the actual graph of results. \\
+	\item ``downloadbutton'' - The button that says ``Download''. Whenever results are gotten from the model, the callback which is called when pressing this button is updated to return the CSV file sent by the perl wrapper script.\\
+	\item ``explanationdiv'' - This \emph{div} element contains explanatory text for some graphs, such as something like ``Weights for previously unseen outcomes held at zero and duplicate Cues and Outcomes influenced weights more than singular ones.''\\
+	\item ``legenddiv'' - A \emph{div} element into which the graph library draws the legend of the graph. \\
+	\item ``corpora\_table'' - A \emph{table} element which contains radio-buttons for various corpora of the JSON index file.\\
+	\item ``sources\_table'' - A \emph{table} element containing radio-buttons for the different into which one can query the corpora in question. This means it contains a row for running the model on the events directly, and rows for all of the matrixes which can be queried.\\
+	\item ``traces\_in'' - A \emph{table} element which contains various other HTML elements, such as the \emph{textarea} used for the traces, or the text \emph{input} into which something like ``every 1'' is input.\\
+	\item ``traces\_part\_one'' - A \emph{textarea} element into which the user can insert traces which do not include the ``what directive''\footnote{See section on the C++ program} \\
+	\item ``traces\_part\_two'' - An \emph{input} element of \emph{type=text} for which users can input the ``when derective''\footnote{See section on the C++ program} of traces.\\
+	\item ``cues\_and\_outcomes\_table'' - A \emph{table} element in whose two columns are two lists  of cues and outcomes. These lists are generated using the \emph{List.js}\footnote{See \url{http://listjs.com/}} library, and each element contains two parts: The first is the cue/outcome  name, and the second is the alpha/beta value of the cue/outcome. The second part has the CSS ``contentEditable'' attribute set, allowing the user to edit the alpha or beta values used. For empty (i.e. default) alpha or beta values, the character ``\_'' is shown.\\
+	\item ``run\_trace'' - A button which, when clicked, runs the trace.\\
+	\item ``progress\_bar'' - A HTML5 \emph{progress} element used to display the progress of the query.\\
+	\item ``error\_log'' - A \emph{div} element into which log messages are written.\\
+\end{itemize}
+There are still various other ``id'' attributes used throughout, but these are either self--explanatory or used for formatting purposes.
+\newpage
+\subsection{The Javascript}
+\subsubsection{Communication within the program}
+Due to the asynchronous nature of Javascript, there exists the need to communicate information between various areas of the program. 
+This is done (somewhat sub-optimally) mostly using global variables and structures. These variables are described below:
+\begin{itemize}
+	\item \emph{g} - The graph object created by Dygraphs\footnote{See \url{http://dygraphs.com/}}. This object is updated whenever the graph is redrawn. \\
+	\item \emph{global\_corpus\_description} - A string containing the currently selected corpus description. This is updated using an onclick callback on the radio buttons \\
+	\item \emph{global\_source\_type} - A string with value of either ``Matrices'' or ``Events''.  This is also updated using an onlclick handler on a set of radio buttons.\\
+	\item \emph{global\_matrix\_description} -  A string with the current matrix description (where applicable). Also updated using an onclick handler on a set of radio buttons.
+	\item \emph{global\_default\_alphas} - A hash of corpus description to text-input HTML nodes,\linebreak i.e. \nobreak $global\_default\_alphas[current\_corpus\_name].value$ will give the default alpha value for the current corpus description.  To allow for persistent values of default alpha and beta values accross changing the current corpus, we save all of the HTML text-input nodes in this variable and then reuse them whenever generating the table that contains them (Note that removing a HTML node from the document tree does not actually delete the node).\\
+	\item \emph{global\_default\_betas} - Same as \emph{global\_default\_alphas} but for beta values (see above).\\
+	\item \emph{global\_lambdas} - Has the same structure as \emph{global\_default\_alphas} and \emph{global\_default\_betas} but contains information on the value of lambda for various corpora.\\
+	\item \emph{global\_untils} - Same structure as \emph{global\_default\_alphas} (see there for details), but each element of the hash contains a text input element for the number of events to learn from. \\
+	\item \emph{global\_has\_duplicates} - Same structure as \emph{global\_default\_alphas} (see above), but each element is a check-box whose checked-ness determines how duplicate cues or outcomes should be treated. \\
+	\item \emph{global\_save\_output\_matrices} - Same structure as \emph{global\_has\_duplicates}, but the checked-ness of the elements in this hash determines  whether or not to save matrices at particular event counts for the various corpora. \\
+	\item \emph{global\_output\_matrix\_description} - Same structure as \emph{global\_default\_alphas}. This is only relevant is \emph{global\_save\_output\_matrices[current\_corpus\_description].checked} is true. The values of individual elements in this hash give the user-supplied unique matrix-descriptions for sets of matrices saved on the current run for various corpora. \\
+	\item \emph{global\_output\_matrix\_events} - Same structure as \emph{global\_default\_alphas}. This is only relevant if \emph{global\_save\_output\_matrices[current\_corpus\_description].checked}  is true. The values of individual elements in this hash should be comma-separated lists of integers specifing at what event counts matrices should be saved. \\
+	\item \emph{global\_alphas\_files} - A hash of corpus description to string, where the string is the alphas file for that corpus. This alphas file is exactly the same as that present on the server. Note that more relevant for itra-process communication is the \emph{global\_cues\_lists} variable, as that is used when the request for the cgi-bin perl script is generated. The variable \emph{global\_alphas\_files} is updated whenever the alphas file is fetched from the cgi--bin script (typically at the start of the program, i.e. once the page has loaded) . \\
+	\item \emph{global\_betas\_files}  - Same as \emph{global\_alphas\_files}, but for betas instead of alphas.\\
+	\item \emph{global\_cues\_lists} - A hash of corpus description to HTML $<div>$ nodes, where each div contains a list of cues as generated by \emph{List.js}\footnote{See \url{http://listjs.com}}. This variable is created at the start of the program from the cues and alphas files fetched from the server. The list contents are mutable using the CSS \emph{ContentEditable} attribute, and due to the way that HTML nodes work in Javascript, this keeps the contents up to date. Alpha values of ``\_'' mean empty alpha values, meaning that the default alpha value should be used.\\
+	\item \emph{global\_outcomes\_lists} - Has the same structure as \emph{global\_cues\_lists} (see above).\\
+\end{itemize}
+\subsubsection{General structure of the Javascript program}
+Given the asynchronous nature of Javascript, it is difficult to describe the structure of the Javascript program using flow-charts. However, the operation of the program can be split into two parts:
+\begin{itemize}
+	\item Initilization \\
+	\item Responding to user-generated Events (such as clicks, etc) \\
+\end{itemize}
+The initialization can be described using the following pseudocode:
+\begin{verbatim}
+When the page has finished loading:
+{
+    -Setup the callback to clear the log when the relevant button is pressed.
+    -Get the JSON index file.
+    For each corpus in the index file:
+    {
+        -Add details of the corpus to the HTML node with id ``corpora_table''
+        -Register a bound version of the function ``respondToCorpusChange'' as
+            the onclick handler for all radio buttons, with the function parameter
+            for this function bound to the current corpus description.
+        -Run the function ``respondToCorpusChange'' initially,
+            i.e. pretend the user clicked this corpus.
+    }
+}
+\end{verbatim}
+The function \emph{respondToCorpusChange} looks like this:
+\begin{verbatim}
+function respondToCorpusChange(corpus_description)
+{
+    For every matrix file available for this corpus:
+    {
+        -Get the matrix file information from the cgi-bin script.
+        -Run ``addMatrixDataSource'' for each result of the above query.
+    }
+    -Run ``addNormalDataSource'' to add the standard way of
+        querying the corpus using events.
+    -Get cues and alphas files from server and make it into
+        a List.js list with the desired properties.
+    -Get outcomes and betas files from server and make it into
+        a List.js list with the desired properties.
+}
+\end{verbatim}
+The \emph{addMatrixDataSource} and \emph{addNormalDataSource} are hopefully easy to understand from the source code. Note that the descriptions above are slight oversimplifications of the above code in the sense that they present what is done in a synchronous manner, whereas the actual code contains a lot of callbacks which Javascript runs asynchronously.\\
+\\
+Lastly, the Javascript code contains various other functions which are registered as callbacks that respond to events such as the ``Run the trace'' button being clicked, or which update the progress bar, etc\dots These are probably best understood by looking at the code, which also contains comments.
+\newpage
+\begin{thebibliography}{9}
+\bibitem[Danks(2003)Danks]{danks}
+	Danks, David.
+	``Equilibria of the Rescorla--Wagner model''.
+	\textit{Journal of Mathematical Psychology} Volume 47, Number 2, pages 109 -- 121 (2003)
+	Retrieved from \url{http://repository.cmu.edu/cgi/viewcontent.cgi?article=1086&context=philosophy}.
+
+
+
+\end{thebibliography}
+\end{document}

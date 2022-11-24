@@ -1,0 +1,150 @@
+For more in-depth information about how the program and the related web interface work, see Manual/Manual.latex
+This file simply gives information on how to get the program to do some things.
+
+The program iterative_rescorla_wagner implements the Rescorla-Wagner model.
+
+Invocation:
+
+	Below is a brief summary of the invocation of the iterative_rescorla_wagner program.
+	More details are given in the sections below.
+	Basic invocation:
+	iterative_rescorla_wagner $folder_with_everything $corpus_name $default_alpha $default_beta OPTIONS < what_to_trace > trace_output
+
+		Where $folder_with_everything is a directory containing the following files:
+			Mandatory:
+				$corpus_name.events - A folder created by ndl.preproc containing .dat files of events.
+				$corpus_name.outputs - A file created by ndl.preproc containing a map of outputs to their ids.
+				$corpus_name.cues - A file created by ndl.preproc containing a map of cues to their ids.
+			Optional:
+				$corpus_name.alphas - A space separated file mapping cues to alpha values.
+				$corpus_name.betas - A space separated file mapping outcomes to beta values.
+
+		and $default_alpha or $default_beta give default values for the alpha and beta parameters used in the model.
+
+		and OPTIONS is optionally one or many of the following
+			-l $lambda - Set the value used in the model for the maximum possible conditioning for an outcome.
+			-d - Add what is being added to weights multiple times when there are duplicate Cues and/or Outcomes in a single Event
+			-u $event_number - Learn using only using the first $event_number events.
+			-q  - Enable quiet mode. Be less verbose when writing to stderr (the actual output itself is unchanged).
+			-o $output_file - Write matrices to the file $output_file.
+			-m a b c... (Where a,b,c, ... are unsigned integers)- Write the association matrix to output_file at events a,b,c...
+			-a $alphas_file - Let $alphas_file be used in place of $corpus_name.alphas
+			-b $betas_file -Let $betas_file be used in place of $corpus_name.beta
+
+
+Format of Input to the model:
+
+	The iterative_rescorla_wagner program takes as its first argument the path to a directory containing various files used by the model as input.
+		This folder is referred to as "$folder_with_everything" throughout this file.
+		$folder_with_everything must be readable by the iterative_rescorla_wagner program.
+
+	The corpus name of the corpus used by the iterative_rescorla_wagner program is entered as the second argument.
+		The corpus name is referred to "$corpus_name" throughout this file.
+		(Note that $folder_with_everything is allowed to contain files relevant to multiple corpora, and hence $corpus_name must always be specified)
+
+	$folder_with_everything has the following mandatory contents:
+		$corpus_name.events should be a readable subdirectory containing .dat files written by the ndl.preproc program.
+			(Note that only events of the form events_[0-9]+_[0-9]+.dat (e.g. events_3_52.dat) can be used)
+		$corpus_name.outputs should be a file mapping outputs to unsigned integers. This file is created by the ndl.preproc program.
+			The file $corpus_name.outputs should be in the UTF-8 encoding, as should all text files used by the program.
+		$corpus_name.cues should be a file mapping cues to integers. This file is also created by the ndl.preproc program.
+
+	$folder_with_everything is also allowed to have the following optional contents:
+		$corpus_name.alphas is used to specify individual alpha values for cues.
+			Its format is that it should contain lines where each line begins with a string, then has a space and ends with
+			a floating point number and a newline character. The string is the cue name and should be present in the $corpus_name.cues file.
+			The floating point number should be in the range (0,1] and is the alpha value used for the cue given by the string.
+			Make sure to specify each cue only once.
+			Note that any cues not mentioned in this file are given an alpha value of $default_alpha (see below).
+			This file can be overridden by passing a filename with "-a" in the OPTIONS.
+		$corpus_name.betas is like the $corpus_name.alphas files both in format and in meaning, except that it maps outcomes to their
+			respective beta values of the rescorla-wagner model.
+			This file can be overridden by passing a filename with "-b".
+
+	The default values of alpha and beta are given as the third and fourth arguments to iterative_rescorla_wagner respectively.
+		Throughout this text, they are reffered to as $default_alpha and $default_beta respectively, and should be in the
+		range [0,1].
+
+	The last command-line options to iterative_rescorla_wagner are optional, and are referred to as OPTIONS throughout this file.
+		The -d option:  The standard Rescorla-Wagner model does not mention the possibilty of the same cue or outcome occurring multiple
+			times in a single event. When -d is not passed as an option, multiple occurances of a cue or outcome in an event 
+			are not treated differently from the case where the cue or outcome occurs only once. When -d is passed as an
+			option, the change in the weight for a given (cue,outcome) pair in the association matrix is multiplied by the number
+			of times each cue and outcome occurs. Hence the cue occurs 2 times and the outcome occurs 3 times, the change in weight
+			of the (cue,outcome) pair is 6 times what it would be for that event i the -d option not been given.
+		The -l option, when followed by a positive floating point number is used to specify the value of lambda used in the model.
+		The -o option causes the command-line argument after it to be used as the filename of the output file for matrices (see below).
+		The -m option, followed by an arbitarily-long set of unsigned integers as the following command-line options can be used
+			to output the entire association matrix to a specific file  given in the -o option.
+			The current association matrix value is written out after the event-numbers given after the -m option.
+		For a full list of all the options, see the section of invocation.
+
+	The remainder of the arguments for the iterative_rescorla_wagner_model are taken from standard input.
+		Passing lines like "$cue_name,$outcome_name\n" results in the association weight of $cue_name to $outcome_name
+			to be written to standard output at each iteration of the model (See below for the format of this output).
+		Passing lines like "cosine($some_outcome,$some_other_outcome)\n" results in the cosine of the column vector for outcome
+			$some_outcome and outcome $some_other_outcome to be output.
+		Passing lines like "euclidean($some_outcome,$some_other_outcome)\n" is like for cosine, but gives the euclidean distance.
+
+		It is also possible to add aditional trace parameters after a $cue_name,$outcome_name pair or a cosine or euclidean trace.
+			To do so, the "$cue_name,$outcome_name" part must be followed by an ascii TAB character and a string within parentheses.
+			The string within parentheses must have the following form:
+				It can start with the word 'every', followed by a space and a single positive integer.
+					E.g. (every 10) would cause the trace to be output on iterations of the model whose numbers
+						are multiples of 10.
+				Or the word 'at', followed by a space and a space separated list of integers.
+					E.g. (at 10 20 30) would cause the trace to be output at event numbers 10, 20 and 30.
+				Or the word 'first', followed by a single positive inter.
+					E.g. (first 3) would cause the trace to be output for the first 3 iteration of the model.
+			I.e the entire trace line could look like:
+				cue,outcome	(every 11) 
+			or
+				cosine(outcome_one,outcome_two)	(first 1000)
+
+		NB: The part in parentheses *must* be separated by the cue,outcome pair with an ascii TAB character.
+				This is because unicode has the "feature" of allowing space characters in places where one
+				would not expect them when using the NFKD decomposition form, and this program tries to support
+				unicode cue and outcome names fully.
+		
+	The model starts only once its standard input has been closed. On some shells, pressing Ctrl+D achieves this.
+
+		
+Format of Output from the model:
+
+	Traces
+		Traces are output to standard output. They take the form "$event_number\t($cue_id,$outcome_id)\t$association\n"
+			where $cue_id and $outcome_id are the cue id and outcome id as given by the
+			$corpus_name.cues and $corpus_name.outcomes files respectively (See above).
+			$event_number is the event number of the trace.
+
+	Full Association Matrices
+		The full association Matrices after particular event counts (specifiable using the -m option (see above)) are output
+		to the file given after the -o option. Note that these matrices are in binary form, and are best
+		output using output_matrix_file_to_ascii program included in the source directory of iterative_rescorla_wagner.
+		Simply pass the location of the matrix file as the first argument to that program.
+			For more advanced analysis of the Association Matrices output by the iterative_rescorla_wagner,
+			call "output_matrix_file_to_ascii <location_of_matrix_file> --simulate-trace". 
+			Entering traces to the standard input of the program in the same format as those used by the
+			iterative_rescorla_wagner program (see above) allows traces to be run on the output matrices in the file.
+		Matrix rows are numbered by cue-id and columns by outcome-id.
+		NOTE that zero-indexing is used for Matrices, i.e the first row of the matrix has cue-id of 0 and the first column
+			has outcome-id of 0.
+
+Running tests:
+
+	Running "make test" in the source directory tests the model with several tests.
+
+Debugging:
+	
+	A variety of debug messages are output to standard error whilst the program is running.
+
+Notes on compiling:
+	
+	iterative_rescorla_wagner depends on both the eigen3, boost::filesystem and boost::regex packages.
+	Apart from that, a c++11-compliant c++ compiler should be used for compiling on an (at least somewhat) 
+	POSIX-compliant system.
+
+Further information:
+
+	Contact Nathanael Schilling (nathanaelschilling<at>gmx.net) with further questions.
+

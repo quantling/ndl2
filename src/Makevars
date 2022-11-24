@@ -1,0 +1,22 @@
+## Use the R_HOME indirection to support installations of multiple R version
+
+OBJECTS_COMMON = common/helper.o common/serialization.o common/Exception.o \
+  common/view_events.o
+# learn.module.o should be in the learning directory, but compileAttributes()
+# doesn't look at files in subdirectories...
+OBJECTS_LEARNING = danks.o learning/rescorla_wagner.o \
+  learning/file_management.o learning/util.o learning/matrix_io.o \
+  learning/events_manager.o learning/r_wrapper.o
+OBJECTS_PREPROCESSING = preprocessing/ndlpreproc.o preprocessing/ndlOutBuffer.o\
+  view_events_wrapper.o preprocessing_wrapper.o
+OBJECTS_OTHER = RcppExports.o misc.o
+OBJECTS = $(OBJECTS_COMMON) $(OBJECTS_LEARNING) $(OBJECTS_PREPROCESSING) \
+  $(OBJECTS_OTHER)
+
+MISC_LIBS = -licuuc -licui18n
+
+PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
+  $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(MISC_LIBS)
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -DUSING_RCPP=1 -Wall
+CXX_STD = CXX11
+

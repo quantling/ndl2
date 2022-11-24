@@ -1,0 +1,25 @@
+Invalid option: 
+Reading in outcomes...
+Done reading in 1107 outcomes with maximum outcome value of 1106
+Reading in cues...
+Done reading in 2078 cues with maximum cue value of 35793
+Please enter a newline-separated list of the values you wish to trace. Each item of the list should look like cue,outcome
+Optionally enter additional parameters in brackets
+	These parameters must have the following format: A word, followed by a sequence of integers separated by spaces.
+	The first word must be one of 'every','at' or 'first'
+	These parameters determine when the trace should be output. For details consult the manual in the README file
+	A well-formed parameter-string could be (every 10).
+		This which would result in the trace being output on every event number that is a multiple of 10,
+Having entered this newline separated list, press Ctrl+D (or the system's equivalent) to close this program's standard input.
+Tracing	(the,foot)	as	(27681,350)	at event 100
+Tracing	(the,foot)	as	(27681,350)	at event 200
+Tracing	(the,foot)	as	(27681,350)	at event 20000
+Done reading what to trace. 
+Reading in values for alphas, default alpha value is 0.001
+Done reading in values for alphas
+Reading in values for betas, default beta value is 0.1
+Done reading in values for betas
+Finished creating empty association matrix
+Found 1 events file(s) which will be processed in the following order:
+	events_0_0
+.Ran Rescorla-Wagner model for 21271 events from 1 files

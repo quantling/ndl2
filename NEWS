@@ -1,0 +1,15 @@
+Changes for R-package ndl2
+
+
+###################################################
+Changes in version 0.1.1 (Nov 1st, 2019)
+Implementer: Konstantin (Tino) Sering <konstantin.sering@uni-tuebingen.de>
+
+* Fixes issue with libicu where explicit declarin of "UnicodeString" type
+  becomes mandatory.
+
+################################################### 
+Changes in version 0.1.0 (Jun 1st, 2015)
+Implementer: Samuel Bitschnau <samuel.bitschnau@mailbox.org>
+
+* Created ndl2 package. Imported preprocess2 branch of the ndl git repository.

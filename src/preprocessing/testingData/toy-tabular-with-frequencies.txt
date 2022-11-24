@@ -1,0 +1,11 @@
+Cues	Outcomes	Frequency
+#h_ha_an_nd_d#	hand	10
+#h_ha_an_nd_ds_s#	hand_plural	20
+#l_la_an_nd_d#	land	8
+#l_la_an_nd_ds_s#	land_plural	3
+#a_an_nd_d#	and	35
+#s_sa_ad_d#	sad	18
+#a_as_s#	as	35
+#l_la_ad_d#	lad	102
+#l_la_ad_d#	lad_plural	54
+#l_la_as_ss_s#	lass	134

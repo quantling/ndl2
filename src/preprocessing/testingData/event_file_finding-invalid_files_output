@@ -1,0 +1,14 @@
+Negative numbers are not allowed for event file names: 'events_0_-1.dat'
+Event file path '0_0.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == events_, extracted = 0_0.dat
+Negative numbers are not allowed for event file names: 'events_-1_0.dat'
+Event file path 'events_0.0.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == _, extracted = .
+Event file path 'events_0_x.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == .dat, extracted = 
+Event file path 'events_0_.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == .dat, extracted = 
+Event file path 'events_x_0.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == _, extracted = 
+Event file path 'events.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == events_, extracted = events.
+Event file path 'events__0.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == _, extracted = 
+Event file path 'events___.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == _, extracted = 
+Event file path 'events_0.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == _, extracted = .
+Event file path 'events.0_0.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == events_, extracted = events.
+Event file path 'xyy.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == events_, extracted = xyy.dat
+Event file path 'events_0.0.dat.dat' is invalid. File name does not have the required format 'events_X_Y.dat'. wantedPart == _, extracted = .

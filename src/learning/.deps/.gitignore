@@ -1,0 +1,5 @@
+# Ingore everything in this directory (only folder structure needed for git)
+*
+# Apart from this file itself and the subfolder common
+!.gitignore
+!common

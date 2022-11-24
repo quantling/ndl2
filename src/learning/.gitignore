@@ -1,0 +1,7 @@
+*.o
+tester
+Manual/Manual.aux
+Manual/Manual.log
+Manual/Manual.idx
+Manual/Manual.toc
+Manual/Manual.out

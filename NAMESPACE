@@ -1,0 +1,6 @@
+useDynLib(ndl2)
+export(ndlClassify,anova.ndlClassify,ndlCrossvalidate,predict.ndlClassify, crosstableStatistics, estimateActivations, ndlStatistics, RescorlaWagner, RescorlaWagnerWeights, estimateWeightsCompact, ndlVarimp, summary.ndlClassify,estimateWeights, orthoCoding, summary.ndlCrossvalidate,modelStatistics, plot.ndlClassify, plot.RescorlaWagner,acts2probs, cueCoding,ndlCuesOutcomes, ndlPreprocessCorpus, ndlPreprocessTabular, ndlPreprocessDataframe, learnWeightsCompact, learnWeightsCorpus, learnWeightsTabular, learnWeights, ndlViewEvents, resumeLearning, ndlPreprocessingResult, print.ndlWeightMatrixInfo, .DollarNames.ndlPreprocessingResult, all.equal.ndlPreprocessingResult, all.equal.ndlLearner, readWeightMatrix)
+exportClasses(ndlPreprocessingResult, ndlLearner)
+importFrom(MASS,ginv)
+import(methods, Rcpp)
+
